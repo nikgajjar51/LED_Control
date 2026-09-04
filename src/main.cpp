@@ -1,18 +1,20 @@
-#include <Arduino.h>
 #include <FastLED.h>
 
-#define LED_Data_Pin 5
-#define LED_Count 100
-#define LED_Color_Order GRB
-#define LED_Midpoint 50
-#define LED_Max_Brightness 200
+/* Data Pins and Configuration */
 
+#define LED_Data_Pin 5
+#define LED_Color_Order GRB
 #define Ultrasonic_Trigger_Pin 18
 #define Ultrasonic_Echo_Pin 17
 
-#define Trigger_Distance 100 // The distance within the LED's will trigger when motion is detected.
-#define LED_Hold_Time 5000 // The time the LED's will stay on after being triggered in Milliseconds
+/* Timings and Measurements */
+#define Trigger_Distance 20 // The distance within the LED's will trigger when motion is detected.
+#define LED_Hold_Time 5000  // The time the LED's will stay on after being triggered in Milliseconds
 
+/* LED Strip Cconfiguration */
+#define LED_Count 239
+#define LED_Max_Brightness 255
+CRGB LED_Base_Color = CRGB::DeepPink;
 CRGB LED_Strip[LED_Count];
 
 bool lightsOn = false;
@@ -50,8 +52,7 @@ void setup()
   pinMode(Ultrasonic_Echo_Pin, INPUT);
 
   FastLED.addLeds<WS2812B, LED_Data_Pin, LED_Color_Order>(LED_Strip, LED_Count);
-  fill_gradient_RGB(LED_Strip,LED_Count,CRGB::White,CRGB::Red);
-  //fill_solid(LED_Strip, LED_Count, CRGB::White); // set your desired "on" color here
+  fill_solid(LED_Strip, LED_Count, LED_Base_Color);
   FastLED.setBrightness(0);
   FastLED.show();
 }
@@ -62,9 +63,9 @@ void loop()
   if (millis() - lastPing >= pingInterval)
   {
     lastPing = millis();
-    long dist = readDistanceCM();
+    long current_distance = readDistanceCM();
 
-    bool presenceNow = (dist > 0 && dist < Trigger_Distance);
+    bool presenceNow = (current_distance > 0 && current_distance < Trigger_Distance);
 
     if (presenceNow)
     {
@@ -77,7 +78,7 @@ void loop()
     }
 
     Serial.print("Distance: ");
-    Serial.print(dist);
+    Serial.print(current_distance);
     Serial.print(" cm | Lights: ");
     Serial.println(lightsOn ? "ON" : "OFF");
   }
