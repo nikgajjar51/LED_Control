@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <FastLED.h>
 
 #define LED_Data_Pin 5
