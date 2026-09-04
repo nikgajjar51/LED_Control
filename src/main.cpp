@@ -49,8 +49,8 @@ void setup()
   pinMode(Ultrasonic_Echo_Pin, INPUT);
 
   FastLED.addLeds<WS2812B, LED_Data_Pin, LED_Color_Order>(LED_Strip, LED_Count);
-  // fill_gradient_RGB(LED_Strip,LED_Count,CRGB::White,CRGB::Red);
-  fill_solid(LED_Strip, LED_Count, CRGB::White); // set your desired "on" color here
+  fill_gradient_RGB(LED_Strip,LED_Count,CRGB::White,CRGB::Red);
+  //fill_solid(LED_Strip, LED_Count, CRGB::White); // set your desired "on" color here
   FastLED.setBrightness(0);
   FastLED.show();
 }
