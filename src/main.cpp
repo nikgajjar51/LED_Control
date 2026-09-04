@@ -11,21 +11,24 @@
 #define Trigger_Distance 20 // The distance within the LED's will trigger when motion is detected.
 #define LED_Hold_Time 5000  // The time the LED's will stay on after being triggered in Milliseconds
 
-/* LED Strip Cconfiguration */
+/* LED Strip Configuration */
 #define LED_Count 239
 #define LED_Max_Brightness 255
-CRGB LED_Base_Color = CRGB::DeepPink;
+CRGB LED_Base_Color = CRGB::DarkBlue;
 CRGB LED_Strip[LED_Count];
 
 bool lightsOn = false;
-uint8_t currentBrightness = 0;
-unsigned long lastFadeStep = 0;
-const int fadeStepDelay = 8; // ms between brightness steps
 
 unsigned long lastPing = 0;
 const int pingInterval = 100; // ms between ultrasonic checks
 
 unsigned long lastDetectionTime = 0;
+
+/* Wipe Animation Configuration */
+float wipeProgress = 0;           // current wave position, in LED units
+const float wipeSpeed = 0.15;     // LEDs advanced per ms — lower = slower wipe
+const float wipeFadeWidth = 15.0; // how many LEDs wide the soft fade edge is
+unsigned long lastFrameTime = 0;
 
 long readDistanceCM()
 {
@@ -52,9 +55,11 @@ void setup()
   pinMode(Ultrasonic_Echo_Pin, INPUT);
 
   FastLED.addLeds<WS2812B, LED_Data_Pin, LED_Color_Order>(LED_Strip, LED_Count);
-  fill_solid(LED_Strip, LED_Count, LED_Base_Color);
-  FastLED.setBrightness(0);
+  FastLED.setBrightness(LED_Max_Brightness);
+  FastLED.clear();
   FastLED.show();
+
+  lastFrameTime = millis();
 }
 
 void loop()
@@ -83,18 +88,36 @@ void loop()
     Serial.println(lightsOn ? "ON" : "OFF");
   }
 
-  // --- Non-blocking fade toward target brightness ---
-  if (millis() - lastFadeStep >= fadeStepDelay)
+  // --- Advance the wipe wave toward its target ---
+  unsigned long now = millis();
+  float deltaTime = now - lastFrameTime;
+  lastFrameTime = now;
+
+  float wipeTarget = lightsOn ? (LED_Count + wipeFadeWidth) : 0.0;
+
+  if (wipeProgress < wipeTarget)
   {
-    lastFadeStep = millis();
-    uint8_t target = lightsOn ? LED_Max_Brightness : 0;
-
-    if (currentBrightness < target)
-      currentBrightness++;
-    else if (currentBrightness > target)
-      currentBrightness--;
-
-    FastLED.setBrightness(currentBrightness);
-    FastLED.show();
+    wipeProgress += wipeSpeed * deltaTime;
+    if (wipeProgress > wipeTarget)
+      wipeProgress = wipeTarget;
   }
+  else if (wipeProgress > wipeTarget)
+  {
+    wipeProgress -= wipeSpeed * deltaTime;
+    if (wipeProgress < wipeTarget)
+      wipeProgress = wipeTarget;
+  }
+
+  // --- Render each LED based on wave position ---
+  for (int i = 0; i < LED_Count; i++)
+  {
+    float localPosition = wipeProgress - i;
+    uint8_t brightness = (uint8_t)constrain(
+        (localPosition / wipeFadeWidth) * 255.0, 0, 255);
+
+    LED_Strip[i] = LED_Base_Color;
+    LED_Strip[i].nscale8_video(brightness);
+  }
+
+  FastLED.show();
 }
